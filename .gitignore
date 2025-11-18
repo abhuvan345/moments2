@@ -1,0 +1,56 @@
+# Node / package managers
+node_modules/
+package-lock.json
+yarn.lock
+.pnpm-debug.log
+.pnpm-store/
+
+# Next.js build / cache
+.next/
+out/
+dist/
+
+# Next.js environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# VSCode
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor swap / temp files
+*.swp
+*.swo
+*.tmp
+*.temp
+*.bak
+
+# Tailwind / PostCSS caches
+.cache/
+
+# IntelliJ / JetBrains
+.idea/
+
+# Public uploads / user content (if you have)
+public/uploads/
+public/media/
+
+# Optional: ignore build artifacts if any
+build/
+dist/
