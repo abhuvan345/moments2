@@ -112,6 +112,8 @@ export default function ProviderProfilePage() {
     try {
       const profileData = {
         uid: user?.uid,
+        email: user?.email || "",
+        phone: "",
         businessName,
         category,
         location,

@@ -28,23 +28,12 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 import { bookingsAPI, servicesAPI } from "@/lib/api";
 
-const mockProviders = [
-  { id: 1, name: "Grand Ballroom Events" },
-  { id: 2, name: "Gourmet Catering Co" },
-  { id: 3, name: "The Jazz Collective" },
-  { id: 4, name: "Sunset Garden Venue" },
-  { id: 5, name: "Lens & Light Photography" },
-  { id: 6, name: "DJ Pulse Entertainment" },
-];
-
 export default function BookingPage() {
   const router = useRouter();
   const params = useParams();
   const { user, loading: authLoading, signOut } = useAuth();
   const [userName, setUserName] = useState("");
-  const [provider, setProvider] = useState<{ id: number; name: string } | null>(
-    null
-  );
+  const [providerName, setProviderName] = useState("");
   const [date, setDate] = useState<Date>();
   const [eventType, setEventType] = useState("");
   const [guestCount, setGuestCount] = useState("");
@@ -61,8 +50,18 @@ export default function BookingPage() {
       setUserName(user.displayName || user.email?.split("@")[0] || "User");
     }
 
-    const foundProvider = mockProviders.find((p) => p.id === Number(params.id));
-    setProvider(foundProvider || null);
+    // Load service/provider name
+    const loadProvider = async () => {
+      try {
+        const data = await servicesAPI.getById(params.id as string);
+        if (data.service) {
+          setProviderName(data.service.name || "Service Provider");
+        }
+      } catch (error) {
+        console.error("Error loading service:", error);
+      }
+    };
+    loadProvider();
   }, [user, authLoading, router, params.id]);
 
   const handleLogout = async () => {

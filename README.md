@@ -233,4 +233,7 @@ NEXT_PUBLIC_API_URL=http://localhost:5000/api
 
 ## License
 
-ISC
+Bhuvan A
+
+## admin claim 
+http://localhost:3000/admin/setup

@@ -26,6 +26,7 @@ import {
 import Link from "next/link";
 import { format } from "date-fns";
 import { useAuth } from "@/lib/auth-context";
+import { bookingsAPI, providersAPI } from "@/lib/api";
 
 interface BookingRequest {
   id: number;
@@ -72,57 +73,42 @@ export default function ProviderDashboard() {
         user.displayName || user.email?.split("@")[0] || "Provider"
       );
 
-      // Load mock booking requests
-      const mockRequests: BookingRequest[] = [
-        {
-          id: 1,
-          userName: "Sarah Johnson",
-          userEmail: "sarah@example.com",
-          eventType: "Wedding Reception",
-          date: new Date(2025, 5, 15).toISOString(),
-          guestCount: "150",
-          message:
-            "Looking for a beautiful venue for our summer wedding. We'd love to schedule a tour!",
-          status: "pending",
-          createdAt: new Date(2025, 4, 1).toISOString(),
-        },
-        {
-          id: 2,
-          userName: "Michael Chen",
-          userEmail: "michael@example.com",
-          eventType: "Corporate Gala",
-          date: new Date(2025, 6, 20).toISOString(),
-          guestCount: "300",
-          message:
-            "Annual company gala. Need full catering and bar service for 300 guests.",
-          status: "confirmed",
-          createdAt: new Date(2025, 3, 28).toISOString(),
-        },
-        {
-          id: 3,
-          userName: "Emily Rodriguez",
-          userEmail: "emily@example.com",
-          eventType: "Birthday Party",
-          date: new Date(2025, 5, 8).toISOString(),
-          guestCount: "50",
-          message:
-            "50th birthday celebration. Looking for entertainment for 3 hours.",
-          status: "pending",
-          createdAt: new Date(2025, 4, 3).toISOString(),
-        },
-      ];
+      // Load provider's bookings from backend
+      const loadBookings = async () => {
+        try {
+          // First get provider profile to get providerId
+          const providerData = await providersAPI.getByUid(user.uid);
+          if (providerData.provider) {
+            const data = await bookingsAPI.getByProviderId(
+              providerData.provider.id
+            );
+            const requests = data.bookings || [];
+            setBookingRequests(requests);
 
-      setBookingRequests(mockRequests);
-
-      // Calculate stats
-      setStats({
-        totalBookings: mockRequests.length,
-        pendingRequests: mockRequests.filter((r) => r.status === "pending")
-          .length,
-        confirmedBookings: mockRequests.filter((r) => r.status === "confirmed")
-          .length,
-        rating: 4.8,
-      });
+            // Calculate stats
+            setStats({
+              totalBookings: requests.length,
+              pendingRequests: requests.filter(
+                (r: any) => r.status === "pending"
+              ).length,
+              confirmedBookings: requests.filter(
+                (r: any) => r.status === "confirmed"
+              ).length,
+              rating: 4.8,
+            });
+          } else {
+            // No provider profile found - redirect to complete profile
+            console.log(
+              "No provider profile found. Please complete your profile."
+            );
+          }
+        } catch (error) {
+          console.error("Error loading bookings:", error);
+          // If provider not found, just show empty state
+          setBookingRequests([]);
+        }
+      };
+      loadBookings();
     }
   }, [user, userRole, loading, router]);
 

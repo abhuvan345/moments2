@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { bookingsAPI } from "@/lib/api";
+import { bookingsAPI, servicesAPI } from "@/lib/api";
 
 export default function BookingPage() {
   const router = useRouter();
@@ -65,14 +65,19 @@ export default function BookingPage() {
       setUserName(user.displayName || "");
       setUserEmail(user.email || "");
 
-      // Mock provider data based on ID
-      const providers: Record<string, string> = {
-        "1": "Grand Ballroom Events",
-        "2": "Elite Catering Co.",
-        "3": "Live Music Entertainment",
+      // Load provider/service name from backend
+      const loadProvider = async () => {
+        try {
+          const data = await servicesAPI.getById(providerId);
+          if (data.service) {
+            setProviderName(data.service.name || "Service Provider");
+          }
+        } catch (error) {
+          console.error("Error loading provider:", error);
+          setProviderName("Service Provider");
+        }
       };
-
-      setProviderName(providers[providerId] || "Service Provider");
+      loadProvider();
     }
   }, [user, userRole, loading, router, providerId]);
 

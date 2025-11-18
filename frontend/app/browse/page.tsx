@@ -48,13 +48,13 @@ interface Provider {
 }
 
 export default function BrowsePage() {
-  const router = useRouter()
-  const { user, userRole, loading, signOut } = useAuth()
-  const [userName, setUserName] = useState("")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState("all")
-  const [providers, setProviders] = useState<Provider[]>([])
-  const [loadingProviders, setLoadingProviders] = useState(true)
+  const router = useRouter();
+  const { user, userRole, loading, signOut } = useAuth();
+  const [userName, setUserName] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [loadingProviders, setLoadingProviders] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {

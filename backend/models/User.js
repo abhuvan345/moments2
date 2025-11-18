@@ -11,6 +11,7 @@ class User {
       phone: data.phone || "",
       avatar: data.avatar || "",
       role: data.role || "user",
+      status: data.role === "provider" ? "pending" : "active",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

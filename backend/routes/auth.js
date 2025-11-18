@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { auth } = require("../config/firebase");
 const User = require("../models/User");
+const Provider = require("../models/Provider");
 const { verifyToken, verifyAdmin } = require("../middleware/auth");
 
 // Register/Create user profile
@@ -19,6 +20,16 @@ router.post("/register", async (req, res) => {
     // Set custom claims based on role
     if (role === "provider") {
       await auth.setCustomUserClaims(uid, { provider: true });
+
+      // Auto-create basic provider profile with pending status
+      await Provider.create({
+        uid,
+        email,
+        businessName: name || "New Provider",
+        category: "other",
+        phone: phone || "",
+        description: "Waiting for admin approval",
+      });
     } else if (role === "admin") {
       await auth.setCustomUserClaims(uid, { admin: true });
     }

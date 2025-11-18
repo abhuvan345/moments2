@@ -36,14 +36,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { useAuth } from "@/lib/auth-context";
+import { usersAPI, bookingsAPI, providersAPI } from "@/lib/api";
 
 interface UserData {
   id: number;
   name: string;
   email: string;
   role: "user" | "provider" | "admin";
-  status: "active" | "suspended";
+  status: "active" | "suspended" | "pending";
   joinedDate: string;
+}
+
+interface ProviderData {
+  id: string;
+  uid: string;
+  businessName: string;
+  email: string;
+  category: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
 }
 
 interface BookingData {
@@ -62,10 +73,12 @@ export default function AdminDashboard() {
   const [adminName, setAdminName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState<UserData[]>([]);
+  const [providers, setProviders] = useState<ProviderData[]>([]);
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalProviders: 0,
+    pendingProviders: 0,
     totalBookings: 0,
     revenue: "$0",
   });
@@ -84,107 +97,83 @@ export default function AdminDashboard() {
     if (user) {
       setAdminName(user.displayName || user.email?.split("@")[0] || "Admin");
 
-      // Load mock users
-      const mockUsers: UserData[] = [
-        {
-          id: 1,
-          name: "Sarah Johnson",
-          email: "sarah@example.com",
-          role: "user",
-          status: "active",
-          joinedDate: new Date(2024, 11, 15).toISOString(),
-        },
-        {
-          id: 2,
-          name: "Michael Chen",
-          email: "michael@example.com",
-          role: "user",
-          status: "active",
-          joinedDate: new Date(2024, 10, 20).toISOString(),
-        },
-        {
-          id: 3,
-          name: "Grand Ballroom Events",
-          email: "contact@grandballroom.com",
-          role: "provider",
-          status: "active",
-          joinedDate: new Date(2024, 9, 5).toISOString(),
-        },
-        {
-          id: 4,
-          name: "Elite Catering Co.",
-          email: "info@elitecatering.com",
-          role: "provider",
-          status: "active",
-          joinedDate: new Date(2024, 8, 12).toISOString(),
-        },
-        {
-          id: 5,
-          name: "Emily Rodriguez",
-          email: "emily@example.com",
-          role: "user",
-          status: "active",
-          joinedDate: new Date(2025, 0, 8).toISOString(),
-        },
-      ];
+      // Load users from backend
+      const loadUsers = async () => {
+        try {
+          const data = await usersAPI.getAll();
+          const usersList = data.users || [];
+          setUsers(usersList);
 
-      setUsers(mockUsers);
+          // Load providers
+          const providersData = await providersAPI.getAll();
+          const providersList = providersData.providers || [];
+          setProviders(providersList);
 
-      // Load mock bookings
-      const mockBookings: BookingData[] = [
-        {
-          id: 1,
-          userName: "Sarah Johnson",
-          providerName: "Grand Ballroom Events",
-          eventType: "Wedding Reception",
-          date: new Date(2025, 5, 15).toISOString(),
-          status: "confirmed",
-          amount: "$12,500",
-        },
-        {
-          id: 2,
-          userName: "Michael Chen",
-          providerName: "Elite Catering Co.",
-          eventType: "Corporate Gala",
-          date: new Date(2025, 6, 20).toISOString(),
-          status: "confirmed",
-          amount: "$8,750",
-        },
-        {
-          id: 3,
-          userName: "Emily Rodriguez",
-          providerName: "Live Music Entertainment",
-          eventType: "Birthday Party",
-          date: new Date(2025, 5, 8).toISOString(),
-          status: "pending",
-          amount: "$2,500",
-        },
-        {
-          id: 4,
-          userName: "David Park",
-          providerName: "Grand Ballroom Events",
-          eventType: "Anniversary Celebration",
-          date: new Date(2025, 4, 25).toISOString(),
-          status: "completed",
-          amount: "$6,200",
-        },
-      ];
+          // Load bookings from backend
+          const bookingsData = await bookingsAPI.getAll();
+          const bookingsList = bookingsData.bookings || [];
+          setBookings(bookingsList);
 
-      setBookings(mockBookings);
-
-      // Calculate stats
-      setStats({
-        totalUsers: mockUsers.filter((u) => u.role === "user").length,
-        totalProviders: mockUsers.filter((u) => u.role === "provider").length,
-        totalBookings: mockBookings.length,
-        revenue: "$29,950",
-      });
+          // Calculate stats
+          setStats({
+            totalUsers: usersList.filter((u: any) => u.role === "user").length,
+            totalProviders: providersList.length,
+            pendingProviders: providersList.filter(
+              (p: any) => p.status === "pending"
+            ).length,
+            totalBookings: bookingsList.length,
+            revenue: "$0",
+          });
+        } catch (error: any) {
+          console.error("Error loading admin data:", error);
+          // If forbidden, the admin claim might not be set
+          if (
+            error.message?.includes("Forbidden") ||
+            error.message?.includes("Admin")
+          ) {
+            alert(
+              "Admin access not configured. Please set the admin claim using the backend API:\n\n" +
+                `POST http://localhost:5000/api/auth/set-admin/${user.uid}\n` +
+                `Body: {"adminSecret": "your-admin-secret"}\n\n` +
+                "Then sign out and sign in again."
+            );
+          }
+        }
+      };
+      loadUsers();
     }
   }, [user, userRole, loading, router]);
 
   const handleLogout = async () => {
     await signOut();
     router.push("/");
+  };
+
+  const handleProviderApproval = async (
+    providerId: string,
+    status: "approved" | "rejected"
+  ) => {
+    try {
+      await providersAPI.updateStatus(providerId, status);
+
+      // Update local state
+      setProviders((prev) =>
+        prev.map((p) => (p.id === providerId ? { ...p, status } : p))
+      );
+
+      // Update stats
+      setStats((prev) => ({
+        ...prev,
+        pendingProviders: providers.filter(
+          (p) => p.id !== providerId && p.status === "pending"
+        ).length,
+      }));
+
+      alert(`Provider ${status} successfully`);
+    } catch (error) {
+      console.error("Error updating provider status:", error);
+      alert("Failed to update provider status");
+    }
   };
 
   const handleUserAction = (
@@ -231,15 +220,21 @@ export default function AdminDashboard() {
 
   const filteredUsers = users.filter(
     (user) =>
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase())
+      (user.name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+      (user.email?.toLowerCase() || "").includes(searchQuery.toLowerCase())
   );
 
   const filteredBookings = bookings.filter(
     (booking) =>
-      booking.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.providerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.eventType.toLowerCase().includes(searchQuery.toLowerCase())
+      (booking.userName?.toLowerCase() || "").includes(
+        searchQuery.toLowerCase()
+      ) ||
+      (booking.providerName?.toLowerCase() || "").includes(
+        searchQuery.toLowerCase()
+      ) ||
+      (booking.eventType?.toLowerCase() || "").includes(
+        searchQuery.toLowerCase()
+      )
   );
 
   return (
@@ -364,8 +359,12 @@ export default function AdminDashboard() {
                   Users ({users.filter((u) => u.role === "user").length})
                 </TabsTrigger>
                 <TabsTrigger value="providers">
-                  Providers ({users.filter((u) => u.role === "provider").length}
-                  )
+                  Providers ({providers.length})
+                  {stats.pendingProviders > 0 && (
+                    <Badge className="ml-2 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400">
+                      {stats.pendingProviders} pending
+                    </Badge>
+                  )}
                 </TabsTrigger>
                 <TabsTrigger value="bookings">
                   Bookings ({bookings.length})
@@ -448,17 +447,24 @@ export default function AdminDashboard() {
               </TabsContent>
 
               <TabsContent value="providers" className="space-y-4">
-                {filteredUsers.filter((u) => u.role === "provider").length ===
-                0 ? (
+                {providers.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     No providers found
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {filteredUsers
-                      .filter((u) => u.role === "provider")
-                      .map((user) => (
-                        <Card key={user.id} className="border-2">
+                    {providers
+                      .filter(
+                        (provider) =>
+                          (provider.businessName?.toLowerCase() || "").includes(
+                            searchQuery.toLowerCase()
+                          ) ||
+                          (provider.email?.toLowerCase() || "").includes(
+                            searchQuery.toLowerCase()
+                          )
+                      )
+                      .map((provider) => (
+                        <Card key={provider.id} className="border-2">
                           <CardContent className="p-4">
                             <div className="flex items-center justify-between gap-4">
                               <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -467,56 +473,64 @@ export default function AdminDashboard() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="font-medium text-foreground truncate">
-                                    {user.name}
+                                    {provider.businessName}
                                   </p>
                                   <p className="text-sm text-muted-foreground truncate">
-                                    {user.email}
+                                    {provider.email}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {provider.category} • Joined{" "}
+                                    {format(
+                                      new Date(provider.createdAt),
+                                      "MMM d, yyyy"
+                                    )}
                                   </p>
                                 </div>
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0">
-                                <Badge className={getRoleBadgeColor(user.role)}>
-                                  Provider
-                                </Badge>
                                 <Badge
-                                  className={getStatusBadgeColor(user.status)}
+                                  className={
+                                    provider.status === "approved"
+                                      ? "bg-green-500/10 text-green-700 dark:text-green-400"
+                                      : provider.status === "pending"
+                                      ? "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400"
+                                      : "bg-red-500/10 text-red-700 dark:text-red-400"
+                                  }
                                 >
-                                  {user.status}
+                                  {provider.status}
                                 </Badge>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon">
-                                      <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    {user.status === "active" ? (
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          handleUserAction(user.id, "suspend")
-                                        }
-                                      >
-                                        Suspend Provider
-                                      </DropdownMenuItem>
-                                    ) : (
-                                      <DropdownMenuItem
-                                        onClick={() =>
-                                          handleUserAction(user.id, "activate")
-                                        }
-                                      >
-                                        Activate Provider
-                                      </DropdownMenuItem>
-                                    )}
-                                    <DropdownMenuItem
+                                {provider.status === "pending" && (
+                                  <div className="flex gap-1">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
                                       onClick={() =>
-                                        handleUserAction(user.id, "delete")
+                                        handleProviderApproval(
+                                          provider.id,
+                                          "approved"
+                                        )
                                       }
-                                      className="text-red-600 dark:text-red-400"
                                     >
-                                      Delete Provider
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
+                                      <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                                      Approve
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                                      onClick={() =>
+                                        handleProviderApproval(
+                                          provider.id,
+                                          "rejected"
+                                        )
+                                      }
+                                    >
+                                      <XCircle className="h-3.5 w-3.5 mr-1" />
+                                      Reject
+                                    </Button>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </CardContent>
