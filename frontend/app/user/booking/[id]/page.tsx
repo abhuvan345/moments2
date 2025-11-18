@@ -34,11 +34,12 @@ export default function BookingPage() {
   const { user, loading: authLoading, signOut } = useAuth();
   const [userName, setUserName] = useState("");
   const [providerName, setProviderName] = useState("");
-  const [date, setDate] = useState<Date>();
+  const [date, setDate] = useState<Date[]>([]);
   const [eventType, setEventType] = useState("");
   const [guestCount, setGuestCount] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [bookedDates, setBookedDates] = useState<string[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -62,6 +63,27 @@ export default function BookingPage() {
       }
     };
     loadProvider();
+
+    // Load booked dates for this provider
+    const loadBookedDates = async () => {
+      try {
+        const response = await bookingsAPI.getProviderBookedDates(
+          params.id as string
+        );
+        if (response.bookedDates) {
+          const dates = response.bookedDates.map((b: any) => {
+            const bookingDate = new Date(b.date);
+            // Normalize to midnight UTC to avoid timezone issues
+            bookingDate.setHours(0, 0, 0, 0);
+            return bookingDate.toISOString().split("T")[0];
+          });
+          setBookedDates(dates);
+        }
+      } catch (error) {
+        console.error("Error loading booked dates:", error);
+      }
+    };
+    loadBookedDates();
   }, [user, authLoading, router, params.id]);
 
   const handleLogout = async () => {
@@ -89,11 +111,14 @@ export default function BookingPage() {
     setLoading(true);
 
     try {
+      // Create a single booking with all selected dates
+      const sortedDates = [...date].sort((a, b) => a.getTime() - b.getTime());
       await bookingsAPI.create({
         userId: user?.uid,
         providerId: params.id as string,
-        serviceId: params.id as string, // Using provider ID for now
-        date: date?.toISOString() || "",
+        serviceId: params.id as string,
+        date: sortedDates[0].toISOString(), // Primary date (first selected)
+        dates: sortedDates.map((d) => d.toISOString()), // All selected dates
         time: "TBD",
         eventType,
         guestCount: parseInt(guestCount) || 0,
@@ -173,34 +198,69 @@ export default function BookingPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Event Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal h-12 border-2",
-                          !date && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? format(date, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      className="w-auto p-0 border-2"
-                      align="start"
-                    >
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        initialFocus
-                        disabled={(date) => date < new Date()}
-                        className="rounded-lg"
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <Label className="text-base font-semibold">Event Date</Label>
+                  <Calendar
+                    mode="multiple"
+                    selected={date}
+                    onSelect={setDate}
+                    initialFocus
+                    disabled={(date) => {
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      return date < today;
+                    }}
+                    className="rounded-lg"
+                    modifiers={{
+                      booked: (checkDate) => {
+                        const dateStr = new Date(
+                          checkDate.getFullYear(),
+                          checkDate.getMonth(),
+                          checkDate.getDate()
+                        )
+                          .toISOString()
+                          .split("T")[0];
+                        return bookedDates.includes(dateStr);
+                      },
+                      available: (checkDate) => {
+                        const dateStr = new Date(
+                          checkDate.getFullYear(),
+                          checkDate.getMonth(),
+                          checkDate.getDate()
+                        )
+                          .toISOString()
+                          .split("T")[0];
+                        const isSelected = date.some(
+                          (selectedDate) =>
+                            selectedDate.getFullYear() ===
+                              checkDate.getFullYear() &&
+                            selectedDate.getMonth() === checkDate.getMonth() &&
+                            selectedDate.getDate() === checkDate.getDate()
+                        );
+                        return (
+                          checkDate >= new Date() &&
+                          !bookedDates.includes(dateStr) &&
+                          !isSelected
+                        );
+                      },
+                      selected: (checkDate) => {
+                        return date.some(
+                          (selectedDate) =>
+                            selectedDate.getFullYear() ===
+                              checkDate.getFullYear() &&
+                            selectedDate.getMonth() === checkDate.getMonth() &&
+                            selectedDate.getDate() === checkDate.getDate()
+                        );
+                      },
+                    }}
+                    modifiersClassNames={{
+                      booked:
+                        "bg-red-100 dark:bg-red-950 text-red-900 dark:text-red-100 hover:bg-red-200 dark:hover:bg-red-900 line-through font-bold border-2 border-red-400",
+                      available:
+                        "bg-green-50 dark:bg-green-950/30 text-green-900 dark:text-green-100 hover:bg-green-100 dark:hover:bg-green-900/50 border-2 border-green-400",
+                      selected:
+                        "!bg-orange-500 !text-white hover:!bg-orange-600 !border-4 !border-orange-500 shadow-lg scale-105 font-bold z-10",
+                    }}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -232,9 +292,17 @@ export default function BookingPage() {
                   type="submit"
                   className="w-full"
                   size="lg"
-                  disabled={loading || !date}
+                  disabled={loading || date.length === 0}
                 >
-                  {loading ? "Sending Request..." : "Send Booking Request"}
+                  {loading
+                    ? "Sending Request..."
+                    : `Send Booking Request${
+                        date.length > 0
+                          ? ` (${date.length} date${
+                              date.length > 1 ? "s" : ""
+                            })`
+                          : ""
+                      }`}
                 </Button>
 
                 <p className="text-sm text-muted-foreground text-center">

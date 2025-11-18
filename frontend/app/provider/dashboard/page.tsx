@@ -334,10 +334,38 @@ export default function ProviderDashboard() {
                           <div className="grid sm:grid-cols-2 gap-4 text-sm">
                             <div>
                               <p className="text-muted-foreground mb-1">
-                                Event Date
+                                {request.dates && request.dates.length > 1
+                                  ? "Event Dates"
+                                  : "Event Date"}
                               </p>
                               <p className="font-medium text-foreground">
-                                {format(new Date(request.date), "MMMM d, yyyy")}
+                                {request.dates && request.dates.length > 0
+                                  ? request.dates.length === 1
+                                    ? format(
+                                        new Date(request.dates[0]),
+                                        "MMMM d, yyyy"
+                                      )
+                                    : request.dates.length <= 3
+                                    ? request.dates
+                                        .map((d) =>
+                                          format(new Date(d), "MMM d, yyyy")
+                                        )
+                                        .join(", ")
+                                    : `${format(
+                                        new Date(request.dates[0]),
+                                        "MMM d"
+                                      )} - ${format(
+                                        new Date(
+                                          request.dates[
+                                            request.dates.length - 1
+                                          ]
+                                        ),
+                                        "MMM d, yyyy"
+                                      )} (${request.dates.length} dates)`
+                                  : format(
+                                      new Date(request.date),
+                                      "MMMM d, yyyy"
+                                    )}
                               </p>
                             </div>
                             <div>
@@ -419,10 +447,38 @@ export default function ProviderDashboard() {
                           <div className="grid sm:grid-cols-2 gap-4 text-sm">
                             <div>
                               <p className="text-muted-foreground mb-1">
-                                Event Date
+                                {request.dates && request.dates.length > 1
+                                  ? "Event Dates"
+                                  : "Event Date"}
                               </p>
                               <p className="font-medium text-foreground">
-                                {format(new Date(request.date), "MMMM d, yyyy")}
+                                {request.dates && request.dates.length > 0
+                                  ? request.dates.length === 1
+                                    ? format(
+                                        new Date(request.dates[0]),
+                                        "MMMM d, yyyy"
+                                      )
+                                    : request.dates.length <= 3
+                                    ? request.dates
+                                        .map((d) =>
+                                          format(new Date(d), "MMM d, yyyy")
+                                        )
+                                        .join(", ")
+                                    : `${format(
+                                        new Date(request.dates[0]),
+                                        "MMM d"
+                                      )} - ${format(
+                                        new Date(
+                                          request.dates[
+                                            request.dates.length - 1
+                                          ]
+                                        ),
+                                        "MMM d, yyyy"
+                                      )} (${request.dates.length} dates)`
+                                  : format(
+                                      new Date(request.date),
+                                      "MMMM d, yyyy"
+                                    )}
                               </p>
                             </div>
                             <div>

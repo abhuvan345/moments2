@@ -173,6 +173,10 @@ export const bookingsAPI = {
     return apiRequest(`/bookings/provider/${providerId}`);
   },
   
+  getProviderBookedDates: async (providerId: string) => {
+    return apiRequest(`/bookings/provider/${providerId}/dates`);
+  },
+  
   create: async (data: any) => {
     return apiRequest('/bookings', {
       method: 'POST',

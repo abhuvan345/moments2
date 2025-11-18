@@ -585,18 +585,45 @@ export default function AdminDashboard() {
                                 </p>
                                 <p>
                                   <span className="font-medium text-foreground">
-                                    Date:
+                                    {booking.dates && booking.dates.length > 1
+                                      ? "Dates:"
+                                      : "Date:"}
                                   </span>{" "}
-                                  {format(
-                                    new Date(booking.date),
-                                    "MMM d, yyyy"
-                                  )}
+                                  {booking.dates && booking.dates.length > 0
+                                    ? booking.dates.length === 1
+                                      ? format(
+                                          new Date(booking.dates[0]),
+                                          "MMM d, yyyy"
+                                        )
+                                      : booking.dates.length <= 3
+                                      ? booking.dates
+                                          .map((d) =>
+                                            format(new Date(d), "MMM d, yyyy")
+                                          )
+                                          .join(", ")
+                                      : `${format(
+                                          new Date(booking.dates[0]),
+                                          "MMM d"
+                                        )} - ${format(
+                                          new Date(
+                                            booking.dates[
+                                              booking.dates.length - 1
+                                            ]
+                                          ),
+                                          "MMM d, yyyy"
+                                        )} (${booking.dates.length} dates)`
+                                    : booking.date
+                                    ? format(
+                                        new Date(booking.date),
+                                        "MMM d, yyyy"
+                                      )
+                                    : "Date TBD"}
                                 </p>
                                 <p>
                                   <span className="font-medium text-foreground">
-                                    Amount:
+                                    Guests:
                                   </span>{" "}
-                                  {booking.amount}
+                                  {booking.guestCount || 0}
                                 </p>
                               </div>
                             </div>

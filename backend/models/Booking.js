@@ -10,6 +10,7 @@ class Booking {
       serviceId: data.serviceId,
       eventType: data.eventType || "",
       date: data.date,
+      dates: data.dates || (data.date ? [data.date] : []), // Support multiple dates
       time: data.time,
       guestCount: data.guestCount || 0,
       status: "pending", // pending, confirmed, completed, cancelled

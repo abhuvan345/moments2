@@ -9,11 +9,38 @@ const {
   verifyAdmin,
 } = require("../middleware/auth");
 
+// Get booked dates for a provider (public endpoint for calendar)
+router.get("/provider/:providerId/dates", async (req, res) => {
+  try {
+    const { providerId } = req.params;
+    const bookings = await Booking.getByProviderId(providerId);
+
+    // Return all dates from bookings with multiple dates support
+    const bookedDates = [];
+    bookings
+      .filter((b) => b.status === "confirmed" || b.status === "pending")
+      .forEach((b) => {
+        if (b.dates && Array.isArray(b.dates)) {
+          // Add all dates from the dates array
+          b.dates.forEach((date) => bookedDates.push({ date }));
+        } else if (b.date) {
+          // Backward compatibility for single date
+          bookedDates.push({ date: b.date });
+        }
+      });
+
+    res.json({ success: true, bookedDates });
+  } catch (error) {
+    console.error("Get booked dates error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get all bookings (admin only)
 router.get("/", verifyToken, verifyAdmin, async (req, res) => {
   try {
     const bookings = await Booking.getAll();
-    
+
     // Enrich bookings with user and provider names
     const enrichedBookings = await Promise.all(
       bookings.map(async (booking) => {
@@ -27,7 +54,7 @@ router.get("/", verifyToken, verifyAdmin, async (req, res) => {
         };
       })
     );
-    
+
     res.json({ success: true, bookings: enrichedBookings });
   } catch (error) {
     console.error("Get bookings error:", error);

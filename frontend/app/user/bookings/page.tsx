@@ -178,9 +178,29 @@ export default function UserBookingsPage() {
                 <CardContent>
                   <div className="grid sm:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-muted-foreground mb-1">Event Date</p>
+                      <p className="text-muted-foreground mb-1">
+                        {booking.dates && booking.dates.length > 1
+                          ? "Event Dates"
+                          : "Event Date"}
+                      </p>
                       <p className="font-medium text-foreground">
-                        {booking.date
+                        {booking.dates && booking.dates.length > 0
+                          ? booking.dates.length === 1
+                            ? format(new Date(booking.dates[0]), "MMMM d, yyyy")
+                            : booking.dates.length <= 3
+                            ? booking.dates
+                                .map((d) => format(new Date(d), "MMM d, yyyy"))
+                                .join(", ")
+                            : `${format(
+                                new Date(booking.dates[0]),
+                                "MMM d"
+                              )} - ${format(
+                                new Date(
+                                  booking.dates[booking.dates.length - 1]
+                                ),
+                                "MMM d, yyyy"
+                              )} (${booking.dates.length} dates)`
+                          : booking.date
                           ? format(new Date(booking.date), "MMMM d, yyyy")
                           : "Date TBD"}
                       </p>
