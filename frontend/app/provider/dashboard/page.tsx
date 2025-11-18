@@ -117,25 +117,33 @@ export default function ProviderDashboard() {
     router.push("/");
   };
 
-  const handleBookingAction = (
-    bookingId: number,
+  const handleBookingAction = async (
+    bookingId: string,
     action: "confirmed" | "rejected"
   ) => {
-    setBookingRequests((prev) =>
-      prev.map((req) =>
-        req.id === bookingId ? { ...req, status: action } : req
-      )
-    );
+    try {
+      await bookingsAPI.updateStatus(bookingId, action);
 
-    // Update stats
-    setStats((prev) => ({
-      ...prev,
-      pendingRequests: prev.pendingRequests - 1,
-      confirmedBookings:
-        action === "confirmed"
-          ? prev.confirmedBookings + 1
-          : prev.confirmedBookings,
-    }));
+      // Update local state
+      setBookingRequests((prev) =>
+        prev.map((req) =>
+          req.id === bookingId ? { ...req, status: action } : req
+        )
+      );
+
+      // Update stats
+      setStats((prev) => ({
+        ...prev,
+        pendingRequests: prev.pendingRequests - 1,
+        confirmedBookings:
+          action === "confirmed"
+            ? prev.confirmedBookings + 1
+            : prev.confirmedBookings,
+      }));
+    } catch (error) {
+      console.error("Error updating booking status:", error);
+      alert("Failed to update booking status");
+    }
   };
 
   const getStatusIcon = (status: string) => {

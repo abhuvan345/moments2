@@ -8,11 +8,13 @@ class Booking {
       userId: data.userId,
       providerId: data.providerId,
       serviceId: data.serviceId,
+      eventType: data.eventType || "",
       date: data.date,
       time: data.time,
+      guestCount: data.guestCount || 0,
       status: "pending", // pending, confirmed, completed, cancelled
       notes: data.notes || "",
-      totalPrice: data.totalPrice,
+      totalPrice: data.totalPrice || 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

@@ -24,8 +24,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { servicesAPI } from "@/lib/api";
-import { servicesAPI } from "@/lib/api";
+import { providersAPI } from "@/lib/api";
 
 export default function ServiceDetailPage() {
   const router = useRouter();
@@ -45,15 +44,15 @@ export default function ServiceDetailPage() {
       setUserName(user.displayName || user.email?.split("@")[0] || "User");
     }
 
-    // Load service from backend
+    // Load provider from backend
     const loadService = async () => {
       try {
-        const data = await servicesAPI.getById(params.id as string);
-        if (data.service) {
-          setProvider(data.service);
+        const data = await providersAPI.getById(params.id as string);
+        if (data.provider) {
+          setProvider(data.provider);
         }
       } catch (error) {
-        console.error("Error loading service:", error);
+        console.error("Error loading provider:", error);
       } finally {
         setLoadingProvider(false);
       }
@@ -127,11 +126,15 @@ export default function ServiceDetailPage() {
 
         {/* Hero Image */}
         <div className="aspect-[21/9] relative overflow-hidden rounded-xl bg-muted mb-8">
-          <img
-            src={provider.image || "/placeholder.svg"}
-            alt={provider.name}
-            className="object-cover w-full h-full"
-          />
+          {provider.images && provider.images.length > 0 ? (
+            <img
+              src={provider.images[0]}
+              alt={provider.businessName}
+              className="object-cover w-full h-full"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5" />
+          )}
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
@@ -142,12 +145,14 @@ export default function ServiceDetailPage() {
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
                   <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-                    {provider.name}
+                    {provider.businessName}
                   </h1>
                   <div className="flex items-center gap-4 text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <MapPin className="h-4 w-4" />
-                      <span>{provider.location}</span>
+                      <span>
+                        {provider.location || "Location not specified"}
+                      </span>
                     </div>
                     <Badge variant="secondary" className="capitalize">
                       {provider.category}
@@ -158,60 +163,68 @@ export default function ServiceDetailPage() {
                   <div className="flex items-center gap-1 mb-1">
                     <Star className="h-5 w-5 fill-secondary text-secondary" />
                     <span className="text-2xl font-bold">
-                      {provider.rating}
+                      {provider.rating || 0}
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {provider.reviews} reviews
+                    {provider.reviewCount || 0} reviews
                   </p>
                 </div>
               </div>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                {provider.fullDescription}
+                {provider.description}
               </p>
             </div>
 
             <Separator />
 
             {/* Features */}
-            <div>
-              <h2 className="text-2xl font-bold text-foreground mb-4">
-                What's Included
-              </h2>
-              <div className="grid sm:grid-cols-2 gap-3">
-                {provider.features.map((feature, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Check className="h-3 w-3 text-primary" />
-                    </div>
-                    <span className="text-foreground">{feature}</span>
+            {provider.features && provider.features.length > 0 && (
+              <>
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground mb-4">
+                    What's Included
+                  </h2>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {provider.features.map((feature: string, index: number) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Check className="h-3 w-3 text-primary" />
+                        </div>
+                        <span className="text-foreground">{feature}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
 
-            <Separator />
+                <Separator />
+              </>
+            )}
 
             {/* Portfolio */}
-            <div>
-              <h2 className="text-2xl font-bold text-foreground mb-4">
-                Portfolio
-              </h2>
-              <div className="grid sm:grid-cols-3 gap-4">
-                {provider.portfolio.map((image, index) => (
-                  <div
-                    key={index}
-                    className="aspect-square relative overflow-hidden rounded-lg bg-muted"
-                  >
-                    <img
-                      src={image || "/placeholder.svg"}
-                      alt={`Portfolio ${index + 1}`}
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                ))}
+            {provider.images && provider.images.length > 1 && (
+              <div>
+                <h2 className="text-2xl font-bold text-foreground mb-4">
+                  Portfolio
+                </h2>
+                <div className="grid sm:grid-cols-3 gap-4">
+                  {provider.images
+                    .slice(1)
+                    .map((image: string, index: number) => (
+                      <div
+                        key={index}
+                        className="aspect-square relative overflow-hidden rounded-lg bg-muted"
+                      >
+                        <img
+                          src={image}
+                          alt={`Portfolio ${index + 1}`}
+                          className="object-cover w-full h-full"
+                        />
+                      </div>
+                    ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Booking Card */}
@@ -221,7 +234,7 @@ export default function ServiceDetailPage() {
                 <CardTitle>Book This Service</CardTitle>
                 <CardDescription>Starting from</CardDescription>
                 <p className="text-2xl font-bold text-foreground">
-                  {provider.price}
+                  {provider.priceRange || "Price on request"}
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">

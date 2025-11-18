@@ -27,7 +27,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { bookingsAPI, servicesAPI } from "@/lib/api";
+import { bookingsAPI, providersAPI } from "@/lib/api";
+import Image from "next/image";
 
 export default function UserDashboard() {
   const router = useRouter();
@@ -63,13 +64,14 @@ export default function UserDashboard() {
       };
       loadBookings();
 
-      // Load services from backend
+      // Load providers from backend
       const loadProviders = async () => {
         try {
-          const data = await servicesAPI.getAll();
-          setProviders(data.services || []);
+          // Only load approved providers
+          const data = await providersAPI.getAll({ status: "approved" });
+          setProviders(data.providers || []);
         } catch (error) {
-          console.error("Error loading services:", error);
+          console.error("Error loading providers:", error);
         } finally {
           setLoadingProviders(false);
         }
@@ -104,8 +106,15 @@ export default function UserDashboard() {
 
   const filteredProviders = providers.filter((provider: any) => {
     const matchesSearch =
-      provider.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      provider.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      (provider.businessName?.toLowerCase() || "").includes(
+        searchQuery.toLowerCase()
+      ) ||
+      (provider.description?.toLowerCase() || "").includes(
+        searchQuery.toLowerCase()
+      ) ||
+      (provider.location?.toLowerCase() || "").includes(
+        searchQuery.toLowerCase()
+      );
     const matchesCategory =
       selectedCategory === "all" || provider.category === selectedCategory;
     return matchesSearch && matchesCategory;
@@ -199,17 +208,24 @@ export default function UserDashboard() {
 
         {/* Service Providers Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProviders.map((provider) => (
+          {filteredProviders.map((provider: any) => (
             <Card
               key={provider.id}
               className="overflow-hidden hover:shadow-lg transition-shadow"
             >
               <div className="aspect-video relative overflow-hidden bg-muted">
-                <img
-                  src={provider.image || "/placeholder.svg"}
-                  alt={provider.name}
-                  className="object-cover w-full h-full"
-                />
+                {provider.images && provider.images.length > 0 ? (
+                  <Image
+                    src={provider.images[0]}
+                    alt={provider.businessName}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                    <Building2 className="h-16 w-16 text-primary/30" />
+                  </div>
+                )}
                 <Badge className="absolute top-3 right-3 bg-card/90 backdrop-blur-sm">
                   {getCategoryIcon(provider.category)}
                   <span className="ml-1 capitalize">{provider.category}</span>
@@ -217,27 +233,31 @@ export default function UserDashboard() {
               </div>
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-xl">{provider.name}</CardTitle>
+                  <CardTitle className="text-xl">
+                    {provider.businessName}
+                  </CardTitle>
                   <div className="flex items-center gap-1 text-sm whitespace-nowrap">
                     <Star className="h-4 w-4 fill-secondary text-secondary" />
-                    <span className="font-semibold">{provider.rating}</span>
+                    <span className="font-semibold">
+                      {provider.rating || 0}
+                    </span>
                     <span className="text-muted-foreground">
-                      ({provider.reviews})
+                      ({provider.reviewCount || 0})
                     </span>
                   </div>
                 </div>
                 <CardDescription className="flex items-center gap-1">
                   <MapPin className="h-3 w-3" />
-                  {provider.location}
+                  {provider.location || "Location not specified"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                <p className="text-sm text-muted-foreground mb-4 leading-relaxed line-clamp-2">
                   {provider.description}
                 </p>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-foreground">
-                    {provider.price}
+                    {provider.priceRange || "Price on request"}
                   </span>
                   <Link href={`/user/service/${provider.id}`}>
                     <Button size="sm">View Details</Button>

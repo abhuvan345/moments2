@@ -180,22 +180,26 @@ export default function UserBookingsPage() {
                     <div>
                       <p className="text-muted-foreground mb-1">Event Date</p>
                       <p className="font-medium text-foreground">
-                        {format(new Date(booking.eventDate), "MMMM d, yyyy")}
+                        {booking.date
+                          ? format(new Date(booking.date), "MMMM d, yyyy")
+                          : "Date TBD"}
                       </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground mb-1">Guest Count</p>
                       <p className="font-medium text-foreground">
-                        {booking.guestCount} guests
+                        {booking.guestCount || 0} guests
                       </p>
                     </div>
                     <div className="sm:col-span-2">
                       <p className="text-muted-foreground mb-1">Request Sent</p>
                       <p className="font-medium text-foreground">
-                        {format(
-                          new Date(booking.createdAt),
-                          "MMM d, yyyy 'at' h:mm a"
-                        )}
+                        {booking.createdAt
+                          ? format(
+                              new Date(booking.createdAt),
+                              "MMM d, yyyy 'at' h:mm a"
+                            )
+                          : "Recently"}
                       </p>
                     </div>
                   </div>

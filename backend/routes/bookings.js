@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const Booking = require("../models/Booking");
+const User = require("../models/User");
+const Provider = require("../models/Provider");
 const {
   verifyToken,
   verifyProvider,
@@ -11,7 +13,22 @@ const {
 router.get("/", verifyToken, verifyAdmin, async (req, res) => {
   try {
     const bookings = await Booking.getAll();
-    res.json({ success: true, bookings });
+    
+    // Enrich bookings with user and provider names
+    const enrichedBookings = await Promise.all(
+      bookings.map(async (booking) => {
+        const user = await User.findById(booking.userId);
+        const provider = await Provider.findById(booking.providerId);
+        return {
+          ...booking,
+          userName: user?.name || user?.email || "Unknown User",
+          userEmail: user?.email || "",
+          providerName: provider?.businessName || "Unknown Provider",
+        };
+      })
+    );
+    
+    res.json({ success: true, bookings: enrichedBookings });
   } catch (error) {
     console.error("Get bookings error:", error);
     res.status(500).json({ error: error.message });
@@ -55,7 +72,19 @@ router.get("/user/:userId", verifyToken, async (req, res) => {
     }
 
     const bookings = await Booking.getByUserId(userId);
-    res.json({ success: true, bookings });
+
+    // Enrich bookings with provider names
+    const enrichedBookings = await Promise.all(
+      bookings.map(async (booking) => {
+        const provider = await Provider.findById(booking.providerId);
+        return {
+          ...booking,
+          providerName: provider?.businessName || "Unknown Provider",
+        };
+      })
+    );
+
+    res.json({ success: true, bookings: enrichedBookings });
   } catch (error) {
     console.error("Get user bookings error:", error);
     res.status(500).json({ error: error.message });
@@ -71,7 +100,19 @@ router.get(
     try {
       const { providerId } = req.params;
       const bookings = await Booking.getByProviderId(providerId);
-      res.json({ success: true, bookings });
+
+      // Enrich bookings with user names
+      const enrichedBookings = await Promise.all(
+        bookings.map(async (booking) => {
+          const user = await User.findById(booking.userId);
+          return {
+            ...booking,
+            userName: user?.name || user?.email || "Unknown User",
+          };
+        })
+      );
+
+      res.json({ success: true, bookings: enrichedBookings });
     } catch (error) {
       console.error("Get provider bookings error:", error);
       res.status(500).json({ error: error.message });

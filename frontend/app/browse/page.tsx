@@ -33,18 +33,22 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { servicesAPI } from "@/lib/api";
+import { providersAPI } from "@/lib/api";
+import Image from "next/image";
 
 interface Provider {
   id: string;
-  name: string;
-  category: "venue" | "vendor" | "entertainment";
+  businessName: string;
+  category: string;
   location: string;
   priceRange: string;
   rating: number;
-  reviews: number;
+  reviewCount: number;
   description: string;
   features: string[];
+  avatar: string;
+  images: string[];
+  status: string;
 }
 
 export default function BrowsePage() {
@@ -70,13 +74,14 @@ export default function BrowsePage() {
     if (user) {
       setUserName(user.displayName || user.email?.split("@")[0] || "User");
 
-      // Load services from backend
+      // Load providers from backend
       const loadProviders = async () => {
         try {
-          const data = await servicesAPI.getAll();
-          setProviders(data.services || []);
+          // Only load approved providers
+          const data = await providersAPI.getAll({ status: "approved" });
+          setProviders(data.providers || []);
         } catch (error) {
-          console.error("Error loading services:", error);
+          console.error("Error loading providers:", error);
         } finally {
           setLoadingProviders(false);
         }
@@ -105,9 +110,15 @@ export default function BrowsePage() {
 
   const filteredProviders = providers.filter((provider) => {
     const matchesSearch =
-      provider.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      provider.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      provider.location.toLowerCase().includes(searchQuery.toLowerCase());
+      (provider.businessName?.toLowerCase() || "").includes(
+        searchQuery.toLowerCase()
+      ) ||
+      (provider.description?.toLowerCase() || "").includes(
+        searchQuery.toLowerCase()
+      ) ||
+      (provider.location?.toLowerCase() || "").includes(
+        searchQuery.toLowerCase()
+      );
 
     const matchesCategory =
       categoryFilter === "all" || provider.category === categoryFilter;
@@ -200,17 +211,35 @@ export default function BrowsePage() {
           <Card>
             <CardContent className="p-12 text-center">
               <p className="text-muted-foreground">
-                No services found matching your criteria
+                No providers found matching your criteria
               </p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProviders.map((provider) => (
-              <Card key={provider.id} className="flex flex-col">
+              <Card key={provider.id} className="flex flex-col overflow-hidden">
+                {/* Provider Image */}
+                {provider.images && provider.images.length > 0 ? (
+                  <div className="relative h-48 w-full bg-muted">
+                    <Image
+                      src={provider.images[0]}
+                      alt={provider.businessName}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-48 w-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                    <Building2 className="h-16 w-16 text-primary/30" />
+                  </div>
+                )}
+
                 <CardHeader>
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <CardTitle className="text-xl">{provider.name}</CardTitle>
+                    <CardTitle className="text-xl">
+                      {provider.businessName}
+                    </CardTitle>
                     <Badge className="bg-primary/10 text-primary">
                       {getCategoryIcon(provider.category)}
                       <span className="ml-1 capitalize">
@@ -221,41 +250,50 @@ export default function BrowsePage() {
                   <CardDescription className="space-y-2">
                     <div className="flex items-center gap-1 text-sm">
                       <MapPin className="h-3 w-3" />
-                      <span>{provider.location}</span>
+                      <span>
+                        {provider.location || "Location not specified"}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1 text-sm">
                       <DollarSign className="h-3 w-3" />
-                      <span>{provider.priceRange}</span>
+                      <span>{provider.priceRange || "Price on request"}</span>
                     </div>
                     <div className="flex items-center gap-1 text-sm">
                       <Star className="h-3 w-3 fill-secondary text-secondary" />
                       <span className="font-medium text-foreground">
-                        {provider.rating}
+                        {provider.rating || 0}
                       </span>
-                      <span>({provider.reviews} reviews)</span>
+                      <span>({provider.reviewCount || 0} reviews)</span>
                     </div>
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col">
-                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4 line-clamp-3">
                     {provider.description}
                   </p>
-                  <div className="mb-4">
-                    <p className="text-sm font-medium text-foreground mb-2">
-                      Features:
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {provider.features.slice(0, 3).map((feature, index) => (
-                        <Badge
-                          key={index}
-                          variant="outline"
-                          className="text-xs"
-                        >
-                          {feature}
-                        </Badge>
-                      ))}
+                  {provider.features && provider.features.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-foreground mb-2">
+                        Features:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {provider.features.slice(0, 3).map((feature, index) => (
+                          <Badge
+                            key={index}
+                            variant="outline"
+                            className="text-xs"
+                          >
+                            {feature}
+                          </Badge>
+                        ))}
+                        {provider.features.length > 3 && (
+                          <Badge variant="outline" className="text-xs">
+                            +{provider.features.length - 3} more
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                   <Link href={`/book/${provider.id}`} className="mt-auto">
                     <Button className="w-full">Request Booking</Button>
                   </Link>

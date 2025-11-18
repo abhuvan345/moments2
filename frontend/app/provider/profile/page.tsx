@@ -22,10 +22,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sparkles, ArrowLeft, User, LogOut, Upload, X } from "lucide-react";
+import {
+  Sparkles,
+  ArrowLeft,
+  User,
+  LogOut,
+  Upload,
+  X,
+  ImageIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { providersAPI } from "@/lib/api";
+import { providersAPI, uploadAPI } from "@/lib/api";
+import Image from "next/image";
 
 export default function ProviderProfilePage() {
   const router = useRouter();
@@ -39,6 +48,9 @@ export default function ProviderProfilePage() {
   const [features, setFeatures] = useState<string[]>([""]);
   const [submitting, setSubmitting] = useState(false);
   const [providerId, setProviderId] = useState<string | null>(null);
+  const [avatar, setAvatar] = useState("");
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -74,6 +86,8 @@ export default function ProviderProfilePage() {
             setPriceRange(profile.priceRange || "");
             setDescription(profile.description || "");
             setFeatures(profile.features || [""]);
+            setAvatar(profile.avatar || "");
+            setImages(profile.images || []);
           }
         } catch (error) {
           // Provider profile doesn't exist yet, which is fine for new providers
@@ -105,6 +119,74 @@ export default function ProviderProfilePage() {
     setFeatures(newFeatures);
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size must be less than 5MB");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const data = await uploadAPI.uploadSingle(file);
+      setAvatar(data.url);
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      alert("Failed to upload avatar");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    // Check if adding these images would exceed 10 total
+    if (images.length + files.length > 10) {
+      alert("You can upload a maximum of 10 images");
+      return;
+    }
+
+    // Check file sizes
+    for (const file of files) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Each file must be less than 5MB");
+        return;
+      }
+    }
+
+    setUploading(true);
+    try {
+      const data = await uploadAPI.uploadMultiple(files);
+      const newImageUrls = data.images.map((img: any) => img.url);
+      setImages([...images, ...newImageUrls]);
+    } catch (error) {
+      console.error("Error uploading images:", error);
+      alert("Failed to upload images");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveImage = async (imageUrl: string) => {
+    try {
+      // Extract public_id from Cloudinary URL
+      const urlParts = imageUrl.split("/");
+      const publicIdWithExt = urlParts[urlParts.length - 1];
+      const publicId = publicIdWithExt.split(".")[0];
+
+      await uploadAPI.deleteImage(publicId);
+      setImages(images.filter((img) => img !== imageUrl));
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      // Still remove from UI even if backend delete fails
+      setImages(images.filter((img) => img !== imageUrl));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -120,6 +202,8 @@ export default function ProviderProfilePage() {
         priceRange,
         description,
         features: features.filter((f) => f.trim() !== ""),
+        avatar,
+        images,
       };
 
       if (providerId) {
@@ -298,22 +382,102 @@ export default function ProviderProfilePage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Portfolio Images</CardTitle>
+                <CardTitle>Profile Picture</CardTitle>
                 <CardDescription>
-                  Showcase your work (coming soon)
+                  Upload a profile picture for your business
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-                  <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground mb-2">
-                    Image upload feature coming soon
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    You'll be able to upload photos of your venue, work, or
-                    performances
-                  </p>
+                <div className="flex items-center gap-4">
+                  {avatar ? (
+                    <div className="relative h-24 w-24 rounded-full overflow-hidden border-2 border-border">
+                      <Image
+                        src={avatar}
+                        alt="Profile"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center border-2 border-dashed border-border">
+                      <User className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      disabled={uploading}
+                      className="mb-2"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      JPG, PNG or GIF. Max size 5MB.
+                    </p>
+                  </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Portfolio Images</CardTitle>
+                <CardDescription>
+                  Showcase your work with up to 10 images
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {images.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {images.map((image, index) => (
+                      <div
+                        key={index}
+                        className="relative aspect-square rounded-lg overflow-hidden border-2 border-border group"
+                      >
+                        <Image
+                          src={image}
+                          alt={`Portfolio ${index + 1}`}
+                          fill
+                          className="object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(image)}
+                          className="absolute top-2 right-2 h-8 w-8 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {images.length < 10 && (
+                  <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImagesUpload}
+                      disabled={uploading}
+                      className="hidden"
+                      id="portfolio-upload"
+                    />
+                    <label
+                      htmlFor="portfolio-upload"
+                      className="cursor-pointer block"
+                    >
+                      <ImageIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground mb-2">
+                        {uploading ? "Uploading..." : "Click to upload images"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {images.length}/10 images uploaded. JPG, PNG or GIF. Max
+                        5MB each.
+                      </p>
+                    </label>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

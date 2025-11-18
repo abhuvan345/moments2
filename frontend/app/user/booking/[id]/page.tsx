@@ -26,7 +26,7 @@ import { format } from "date-fns";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
-import { bookingsAPI, servicesAPI } from "@/lib/api";
+import { bookingsAPI, providersAPI } from "@/lib/api";
 
 export default function BookingPage() {
   const router = useRouter();
@@ -50,15 +50,15 @@ export default function BookingPage() {
       setUserName(user.displayName || user.email?.split("@")[0] || "User");
     }
 
-    // Load service/provider name
+    // Load provider name
     const loadProvider = async () => {
       try {
-        const data = await servicesAPI.getById(params.id as string);
-        if (data.service) {
-          setProviderName(data.service.name || "Service Provider");
+        const data = await providersAPI.getById(params.id as string);
+        if (data.provider) {
+          setProviderName(data.provider.businessName || "Service Provider");
         }
       } catch (error) {
-        console.error("Error loading service:", error);
+        console.error("Error loading provider:", error);
       }
     };
     loadProvider();
@@ -91,11 +91,14 @@ export default function BookingPage() {
     try {
       await bookingsAPI.create({
         userId: user?.uid,
-        serviceId: params.id as string,
+        providerId: params.id as string,
+        serviceId: params.id as string, // Using provider ID for now
+        date: date?.toISOString() || "",
+        time: "TBD",
         eventType,
-        eventDate: date?.toISOString() || "",
-        guestCount: parseInt(guestCount),
-        message,
+        guestCount: parseInt(guestCount) || 0,
+        notes: message,
+        totalPrice: 0,
         status: "pending",
       });
 
@@ -108,7 +111,7 @@ export default function BookingPage() {
     }
   };
 
-  if (!user || !provider) {
+  if (!user) {
     return null;
   }
 
@@ -153,7 +156,7 @@ export default function BookingPage() {
             <CardHeader>
               <CardTitle className="text-2xl">Request Booking</CardTitle>
               <CardDescription>
-                Send a booking request to {provider.name}
+                Send a booking request to {providerName}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -176,7 +179,7 @@ export default function BookingPage() {
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
+                          "w-full justify-start text-left font-normal h-12 border-2",
                           !date && "text-muted-foreground"
                         )}
                       >
@@ -184,13 +187,17 @@ export default function BookingPage() {
                         {date ? format(date, "PPP") : <span>Pick a date</span>}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent
+                      className="w-auto p-0 border-2"
+                      align="start"
+                    >
                       <Calendar
                         mode="single"
                         selected={date}
                         onSelect={setDate}
                         initialFocus
                         disabled={(date) => date < new Date()}
+                        className="rounded-lg"
                       />
                     </PopoverContent>
                   </Popover>
