@@ -8,7 +8,8 @@ const { verifyToken, verifyAdmin } = require("../middleware/auth");
 // Register/Create user profile
 router.post("/register", async (req, res) => {
   try {
-    const { uid, email, name, phone, role } = req.body;
+    const { uid, email, name, phone, role, experience, address, aadharUrl } =
+      req.body;
 
     const user = await User.create(uid, {
       email,
@@ -29,6 +30,9 @@ router.post("/register", async (req, res) => {
         category: "other",
         phone: phone || "",
         description: "Waiting for admin approval",
+        experience: experience || "",
+        address: address || "",
+        aadharUrl: aadharUrl || "",
       });
     } else if (role === "admin") {
       await auth.setCustomUserClaims(uid, { admin: true });

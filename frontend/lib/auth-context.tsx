@@ -22,7 +22,10 @@ interface AuthContextType {
     password: string,
     name: string,
     phone?: string,
-    role?: string
+    role?: string,
+    experience?: string,
+    address?: string,
+    aadharUrl?: string
   ) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -42,6 +45,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Check if user profile exists in backend, create if not
       if (user) {
         try {
+          // Force token refresh to get latest custom claims
+          await user.getIdToken(true);
+          const idTokenResult = await user.getIdTokenResult();
+
+          // Check custom claims first
+          let role = "user";
+          if (idTokenResult.claims.admin) {
+            role = "admin";
+          } else if (idTokenResult.claims.provider) {
+            role = "provider";
+          }
+
+          // Fetch user data from backend
           const response = await fetch(
             `${process.env.NEXT_PUBLIC_API_URL?.replace(
               "/api",
@@ -61,13 +77,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               email: user.email!,
               name: user.displayName || user.email?.split("@")[0] || "User",
             });
-            setUserRole("user"); // Default role for new users
+            setUserRole(role);
           } else {
             const data = await response.json();
             console.log("User data from backend:", data);
-            const userRole = data.user?.role || data.role || "user";
-            console.log("Setting user role to:", userRole);
-            setUserRole(userRole);
+            // Use custom claims role, fallback to backend role
+            const backendRole = data.user?.role || data.role || role;
+            console.log("Setting user role to:", backendRole);
+            setUserRole(backendRole);
           }
         } catch (error) {
           console.error("Error checking/creating user profile:", error);
@@ -92,7 +109,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     password: string,
     name: string,
     phone?: string,
-    role?: string
+    role?: string,
+    experience?: string,
+    address?: string,
+    aadharUrl?: string
   ) => {
     const userCredential = await createUserWithEmailAndPassword(
       auth,
@@ -109,6 +129,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name,
         phone,
         role: role || "user",
+        experience,
+        address,
+        aadharUrl,
       });
     } catch (error) {
       console.error("Error creating user profile:", error);

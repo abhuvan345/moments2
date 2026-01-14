@@ -78,9 +78,16 @@ export const usersAPI = {
 
 // Providers API
 export const providersAPI = {
-  getAll: async (filters?: { status?: string; category?: string }) => {
-    const params = new URLSearchParams(filters as any);
-    return apiRequest(`/providers?${params}`);
+  getAll: async (filters?: { status?: string; category?: string; published?: boolean }) => {
+    let queryString = '';
+    if (filters) {
+      const params = new URLSearchParams();
+      if (filters.status) params.append('status', filters.status);
+      if (filters.category) params.append('category', filters.category);
+      if (filters.published !== undefined) params.append('published', String(filters.published));
+      queryString = params.toString();
+    }
+    return apiRequest(`/providers${queryString ? `?${queryString}` : ''}`);
   },
   
   getById: async (id: string) => {
@@ -109,6 +116,13 @@ export const providersAPI = {
     return apiRequest(`/providers/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
+    });
+  },
+
+  togglePublished: async (id: string, published: boolean) => {
+    return apiRequest(`/providers/${id}/publish`, {
+      method: 'PATCH',
+      body: JSON.stringify({ published }),
     });
   },
   

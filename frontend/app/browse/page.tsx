@@ -61,33 +61,27 @@ export default function BrowsePage() {
   const [loadingProviders, setLoadingProviders] = useState(true);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/auth/signin");
-      return;
-    }
-
-    if (!loading && userRole && userRole !== "user" && userRole !== "admin") {
-      router.push("/provider/dashboard");
-      return;
-    }
-
+    // Allow browsing without authentication
     if (user) {
       setUserName(user.displayName || user.email?.split("@")[0] || "User");
-
-      // Load providers from backend
-      const loadProviders = async () => {
-        try {
-          // Only load approved providers
-          const data = await providersAPI.getAll({ status: "approved" });
-          setProviders(data.providers || []);
-        } catch (error) {
-          console.error("Error loading providers:", error);
-        } finally {
-          setLoadingProviders(false);
-        }
-      };
-      loadProviders();
     }
+
+    // Load providers from backend (no auth required for browsing)
+    const loadProviders = async () => {
+      try {
+        // Only load approved AND published providers
+        const data = await providersAPI.getAll({
+          status: "approved",
+          published: true,
+        });
+        setProviders(data.providers || []);
+      } catch (error) {
+        console.error("Error loading providers:", error);
+      } finally {
+        setLoadingProviders(false);
+      }
+    };
+    loadProviders();
   }, [user, userRole, loading, router]);
 
   const handleLogout = async () => {
@@ -133,26 +127,50 @@ export default function BrowsePage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <Sparkles className="h-7 w-7 text-primary" />
+              {/* <Sparkles className="h-7 w-7 text-primary" /> */}
               <span className="text-2xl font-bold text-foreground">Moment</span>
             </Link>
             <div className="flex items-center gap-4">
-              <Link href="/user/dashboard">
-                <Button variant="ghost" size="sm">
-                  Dashboard
-                </Button>
-              </Link>
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="h-4 w-4 text-primary" />
-                </div>
-                <span className="text-sm font-medium hidden sm:inline">
-                  {userName}
-                </span>
-              </div>
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4" />
-              </Button>
+              {user ? (
+                <>
+                  {userRole === "user" && (
+                    <Link href="/user/dashboard">
+                      <Button variant="ghost" size="sm">
+                        Dashboard
+                      </Button>
+                    </Link>
+                  )}
+                  {userRole === "admin" && (
+                    <Link href="/admin/dashboard">
+                      <Button variant="ghost" size="sm">
+                        Dashboard
+                      </Button>
+                    </Link>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="h-4 w-4 text-primary" />
+                    </div>
+                    <span className="text-sm font-medium hidden sm:inline">
+                      {userName}
+                    </span>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={handleLogout}>
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link href="/auth/signin">
+                    <Button variant="ghost" size="sm">
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link href="/auth/signup">
+                    <Button size="sm">Get Started</Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

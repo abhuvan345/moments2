@@ -24,6 +24,12 @@ import {
   Building2,
   LogOut,
   User,
+  Camera,
+  Mic,
+  ChefHat,
+  Palette,
+  Scissors,
+  Flower2,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
@@ -35,6 +41,7 @@ export default function UserDashboard() {
   const { user, loading, signOut } = useAuth();
   const [userName, setUserName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [cityQuery, setCityQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [bookings, setBookings] = useState([]);
   const [providers, setProviders] = useState([]);
@@ -68,7 +75,10 @@ export default function UserDashboard() {
       const loadProviders = async () => {
         try {
           // Only load approved providers
-          const data = await providersAPI.getAll({ status: "approved" });
+          const data = await providersAPI.getAll({
+            status: "approved",
+            published: true,
+          });
           setProviders(data.providers || []);
         } catch (error) {
           console.error("Error loading providers:", error);
@@ -115,9 +125,14 @@ export default function UserDashboard() {
       (provider.location?.toLowerCase() || "").includes(
         searchQuery.toLowerCase()
       );
+    const matchesCity =
+      !cityQuery ||
+      (provider.location?.toLowerCase() || "").includes(
+        cityQuery.toLowerCase()
+      );
     const matchesCategory =
       selectedCategory === "all" || provider.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+    return matchesSearch && matchesCity && matchesCategory;
   });
 
   const getCategoryIcon = (category: string) => {
@@ -133,6 +148,37 @@ export default function UserDashboard() {
     }
   };
 
+  const categories = [
+    {
+      id: "photography",
+      name: "Photography & Videography",
+      icon: Camera,
+      color: "bg-blue-500",
+    },
+    { id: "artists", name: "Artists", icon: Mic, color: "bg-purple-500" },
+    { id: "venue", name: "Venue", icon: MapPin, color: "bg-green-500" },
+    { id: "chef", name: "Chef", icon: ChefHat, color: "bg-orange-500" },
+    {
+      id: "makeup",
+      name: "Makeup Artist",
+      icon: Palette,
+      color: "bg-pink-500",
+    },
+    {
+      id: "decorators",
+      name: "Decorators",
+      icon: Scissors,
+      color: "bg-blue-600",
+    },
+    { id: "caterers", name: "Caterers", icon: Utensils, color: "bg-red-500" },
+    {
+      id: "mehendi",
+      name: "Mehendi Designer",
+      icon: Flower2,
+      color: "bg-yellow-500",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -140,7 +186,7 @@ export default function UserDashboard() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <Sparkles className="h-7 w-7 text-primary" />
+              {/* <Sparkles className="h-7 w-7 text-primary" /> */}
               <span className="text-2xl font-bold text-foreground">Moment</span>
             </Link>
             <div className="flex items-center gap-4">
@@ -180,23 +226,83 @@ export default function UserDashboard() {
 
         {/* Search Bar */}
         <div className="mb-8">
-          <div className="relative max-w-2xl">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search venues, vendors, entertainment..."
-              className="pl-10 h-12"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          <div className="grid md:grid-cols-2 gap-4 max-w-4xl">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search venues, vendors, entertainment..."
+                className="pl-10 h-12"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search by city..."
+                className="pl-10 h-12"
+                value={cityQuery}
+                onChange={(e) => setCityQuery(e.target.value)}
+              />
+            </div>
           </div>
+        </div>
+
+        {/* Category Selection */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-6">
+            <Sparkles className="h-6 w-6 text-primary" />
+            <h2 className="text-2xl font-bold text-foreground">
+              Select the Category
+            </h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {categories.map((category) => {
+              const Icon = category.icon;
+              return (
+                <Card
+                  key={category.id}
+                  className={`cursor-pointer transition-all hover:shadow-md ${
+                    selectedCategory === category.id
+                      ? "ring-2 ring-primary shadow-md"
+                      : ""
+                  }`}
+                  onClick={() => setSelectedCategory(category.id)}
+                >
+                  <CardContent className="flex flex-col items-center justify-center p-6 gap-3">
+                    <div
+                      className={`${category.color} rounded-full p-4 text-white`}
+                    >
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <p className="text-sm font-medium text-center">
+                      {category.name}
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+          {selectedCategory !== "all" && (
+            <div className="mt-4 text-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedCategory("all")}
+              >
+                Clear Filter
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Category Tabs */}
         <Tabs
           value={selectedCategory}
           onValueChange={setSelectedCategory}
-          className="mb-8"
+          className="mb-8 hidden"
         >
           <TabsList className="grid w-full max-w-md grid-cols-4">
             <TabsTrigger value="all">All</TabsTrigger>
@@ -226,7 +332,7 @@ export default function UserDashboard() {
                     <Building2 className="h-16 w-16 text-primary/30" />
                   </div>
                 )}
-                <Badge className="absolute top-3 right-3 bg-card/90 backdrop-blur-sm">
+                <Badge className="absolute top-3 right-3 bg-card/90 backdrop-blur-sm text-primary">
                   {getCategoryIcon(provider.category)}
                   <span className="ml-1 capitalize">{provider.category}</span>
                 </Badge>

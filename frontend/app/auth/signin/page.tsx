@@ -83,7 +83,7 @@ export default function SignInPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <Sparkles className="h-8 w-8 text-primary" />
+            {/* <Sparkles className="h-8 w-8 text-primary" /> */}
             <span className="text-3xl font-bold text-foreground">Moment</span>
           </Link>
         </div>

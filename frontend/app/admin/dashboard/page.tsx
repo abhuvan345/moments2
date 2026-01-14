@@ -55,6 +55,9 @@ interface ProviderData {
   category: string;
   status: "pending" | "approved" | "rejected";
   createdAt: string;
+  experience?: string;
+  address?: string;
+  aadharUrl?: string;
 }
 
 interface BookingData {
@@ -244,10 +247,16 @@ export default function AdminDashboard() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <Sparkles className="h-7 w-7 text-primary" />
+              {/* <Sparkles className="h-7 w-7 text-primary" /> */}
               <span className="text-2xl font-bold text-foreground">Moment</span>
             </Link>
             <div className="flex items-center gap-4">
+              <Link href="/browse">
+                <Button variant="ghost" size="sm">
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  View Services
+                </Button>
+              </Link>
               <div className="flex items-center gap-2">
                 <div className="h-8 w-8 rounded-full bg-purple-500/10 flex items-center justify-center">
                   <Shield className="h-4 w-4 text-purple-600 dark:text-purple-400" />
@@ -466,72 +475,115 @@ export default function AdminDashboard() {
                       .map((provider) => (
                         <Card key={provider.id} className="border-2">
                           <CardContent className="p-4">
-                            <div className="flex items-center justify-between gap-4">
-                              <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                  <Building2 className="h-5 w-5 text-primary" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-foreground truncate">
-                                    {provider.businessName}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground truncate">
-                                    {provider.email}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {provider.category} • Joined{" "}
-                                    {format(
-                                      new Date(provider.createdAt),
-                                      "MMM d, yyyy"
-                                    )}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                <Badge
-                                  className={
-                                    provider.status === "approved"
-                                      ? "bg-green-500/10 text-green-700 dark:text-green-400"
-                                      : provider.status === "pending"
-                                      ? "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400"
-                                      : "bg-red-500/10 text-red-700 dark:text-red-400"
-                                  }
-                                >
-                                  {provider.status}
-                                </Badge>
-                                {provider.status === "pending" && (
-                                  <div className="flex gap-1">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
-                                      onClick={() =>
-                                        handleProviderApproval(
-                                          provider.id,
-                                          "approved"
-                                        )
-                                      }
-                                    >
-                                      <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                                      Approve
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                                      onClick={() =>
-                                        handleProviderApproval(
-                                          provider.id,
-                                          "rejected"
-                                        )
-                                      }
-                                    >
-                                      <XCircle className="h-3.5 w-3.5 mr-1" />
-                                      Reject
-                                    </Button>
+                            <div className="flex flex-col gap-3">
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                    <Building2 className="h-5 w-5 text-primary" />
                                   </div>
-                                )}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-foreground truncate">
+                                      {provider.businessName}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground truncate">
+                                      {provider.email}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {provider.category} • Joined{" "}
+                                      {format(
+                                        new Date(provider.createdAt),
+                                        "MMM d, yyyy"
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <Badge
+                                    className={
+                                      provider.status === "approved"
+                                        ? "bg-green-500/10 text-green-700 dark:text-green-400"
+                                        : provider.status === "pending"
+                                        ? "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400"
+                                        : "bg-red-500/10 text-red-700 dark:text-red-400"
+                                    }
+                                  >
+                                    {provider.status}
+                                  </Badge>
+                                  {provider.status === "pending" && (
+                                    <div className="flex gap-1">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
+                                        onClick={() =>
+                                          handleProviderApproval(
+                                            provider.id,
+                                            "approved"
+                                          )
+                                        }
+                                      >
+                                        <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                                        Approve
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                                        onClick={() =>
+                                          handleProviderApproval(
+                                            provider.id,
+                                            "rejected"
+                                          )
+                                        }
+                                      >
+                                        <XCircle className="h-3.5 w-3.5 mr-1" />
+                                        Reject
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
+                              {(provider.experience ||
+                                provider.address ||
+                                provider.aadharUrl) && (
+                                <div className="border-t pt-3 space-y-1.5">
+                                  {provider.experience && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                      <span className="text-muted-foreground">
+                                        Experience:
+                                      </span>
+                                      <span className="font-medium">
+                                        {provider.experience}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {provider.address && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                      <span className="text-muted-foreground">
+                                        Address:
+                                      </span>
+                                      <span className="font-medium">
+                                        {provider.address}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {provider.aadharUrl && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                      <span className="text-muted-foreground">
+                                        Aadhar:
+                                      </span>
+                                      <a
+                                        href={provider.aadharUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-primary hover:underline font-medium"
+                                      >
+                                        View Document
+                                      </a>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </CardContent>
                         </Card>

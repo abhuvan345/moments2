@@ -10,11 +10,12 @@ const {
 // Get all providers
 router.get("/", async (req, res) => {
   try {
-    const { status, category } = req.query;
+    const { status, category, published } = req.query;
     const filters = {};
 
     if (status) filters.status = status;
     if (category) filters.category = category;
+    if (published !== undefined) filters.published = published === "true";
 
     const providers = await Provider.getAll(filters);
     res.json({ success: true, providers });
@@ -107,6 +108,30 @@ router.patch("/:id/status", verifyToken, verifyAdmin, async (req, res) => {
     res.json({ success: true, provider });
   } catch (error) {
     console.error("Update provider status error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Toggle published status (provider only)
+router.patch("/:id/publish", verifyToken, verifyProvider, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { published } = req.body;
+
+    // Verify that the provider owns this profile
+    const provider = await Provider.findById(id);
+    if (!provider) {
+      return res.status(404).json({ error: "Provider not found" });
+    }
+
+    if (provider.uid !== req.user.uid) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const updatedProvider = await Provider.togglePublished(id, published);
+    res.json({ success: true, provider: updatedProvider });
+  } catch (error) {
+    console.error("Toggle published error:", error);
     res.status(500).json({ error: error.message });
   }
 });

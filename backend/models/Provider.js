@@ -10,13 +10,18 @@ class Provider {
       description: data.description || "",
       category: data.category,
       location: data.location || "",
+      city: data.city || "",
       phone: data.phone,
       email: data.email,
       avatar: data.avatar || "",
       images: data.images || [],
+      experience: data.experience || "",
+      address: data.address || "",
+      aadharUrl: data.aadharUrl || "",
       rating: 0,
       reviewCount: 0,
       status: "pending", // pending, approved, rejected
+      published: false, // controls visibility to users
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -67,12 +72,20 @@ class Provider {
       query = query.where("category", "==", filters.category);
     }
 
+    if (filters.published !== undefined) {
+      query = query.where("published", "==", filters.published);
+    }
+
     const snapshot = await query.get();
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   }
 
   static async updateStatus(id, status) {
     return this.update(id, { status });
+  }
+
+  static async togglePublished(id, published) {
+    return this.update(id, { published });
   }
 }
 

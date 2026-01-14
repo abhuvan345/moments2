@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Sparkles,
   User,
@@ -44,6 +46,8 @@ export default function ProviderDashboard() {
   const router = useRouter();
   const { user, userRole, loading, signOut } = useAuth();
   const [providerName, setProviderName] = useState("");
+  const [providerId, setProviderId] = useState("");
+  const [isPublished, setIsPublished] = useState(false);
   const [bookingRequests, setBookingRequests] = useState<BookingRequest[]>([]);
   const [stats, setStats] = useState({
     totalBookings: 0,
@@ -79,6 +83,9 @@ export default function ProviderDashboard() {
           // First get provider profile to get providerId
           const providerData = await providersAPI.getByUid(user.uid);
           if (providerData.provider) {
+            setProviderId(providerData.provider.id);
+            setIsPublished(providerData.provider.published || false);
+
             const data = await bookingsAPI.getByProviderId(
               providerData.provider.id
             );
@@ -145,7 +152,15 @@ export default function ProviderDashboard() {
       alert("Failed to update booking status");
     }
   };
-
+  const handleTogglePublish = async (checked: boolean) => {
+    try {
+      await providersAPI.togglePublished(providerId, checked);
+      setIsPublished(checked);
+    } catch (error) {
+      console.error("Error toggling publish status:", error);
+      alert("Failed to update publish status");
+    }
+  };
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "confirmed":
@@ -175,10 +190,29 @@ export default function ProviderDashboard() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <Sparkles className="h-7 w-7 text-primary" />
+              {/* <Sparkles className="h-7 w-7 text-primary" /> */}
               <span className="text-2xl font-bold text-foreground">Moment</span>
             </Link>
             <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 border rounded-lg px-3 py-2">
+                <Label
+                  htmlFor="publish-switch"
+                  className="text-sm cursor-pointer"
+                >
+                  {isPublished ? "Published" : "Unpublished"}
+                </Label>
+                <Switch
+                  id="publish-switch"
+                  checked={isPublished}
+                  onCheckedChange={handleTogglePublish}
+                />
+              </div>
+              <Link href="/browse">
+                <Button variant="ghost" size="sm">
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  View Services
+                </Button>
+              </Link>
               <Link href="/provider/profile">
                 <Button variant="ghost" size="sm">
                   <Edit className="h-4 w-4 mr-2" />

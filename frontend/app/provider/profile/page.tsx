@@ -43,6 +43,7 @@ export default function ProviderProfilePage() {
   const [businessName, setBusinessName] = useState("");
   const [category, setCategory] = useState("");
   const [location, setLocation] = useState("");
+  const [city, setCity] = useState("");
   const [priceRange, setPriceRange] = useState("");
   const [description, setDescription] = useState("");
   const [features, setFeatures] = useState<string[]>([""]);
@@ -83,6 +84,7 @@ export default function ProviderProfilePage() {
             setBusinessName(profile.businessName || "");
             setCategory(profile.category || "");
             setLocation(profile.location || "");
+            setCity(profile.city || "");
             setPriceRange(profile.priceRange || "");
             setDescription(profile.description || "");
             setFeatures(profile.features || [""]);
@@ -199,6 +201,7 @@ export default function ProviderProfilePage() {
         businessName,
         category,
         location,
+        city,
         priceRange,
         description,
         features: features.filter((f) => f.trim() !== ""),
@@ -310,6 +313,17 @@ export default function ProviderProfilePage() {
                     placeholder="e.g., New York, NY"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    placeholder="e.g., New York"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
                     required
                   />
                 </div>
