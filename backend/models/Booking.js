@@ -47,19 +47,33 @@ class Booking {
   }
 
   static async getByUserId(userId) {
-    const snapshot = await this.collection
-      .where("userId", "==", userId)
-      .orderBy("createdAt", "desc")
-      .get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const snapshot = await this.collection.where("userId", "==", userId).get();
+    const bookings = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    // Sort in memory to avoid needing Firestore composite index
+    return bookings.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
+      return dateB - dateA; // desc order
+    });
   }
 
   static async getByProviderId(providerId) {
     const snapshot = await this.collection
       .where("providerId", "==", providerId)
-      .orderBy("createdAt", "desc")
       .get();
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const bookings = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    // Sort in memory to avoid needing Firestore composite index
+    return bookings.sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0);
+      const dateB = new Date(b.createdAt || 0);
+      return dateB - dateA; // desc order
+    });
   }
 
   static async getAll() {
