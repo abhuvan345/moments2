@@ -67,25 +67,31 @@ router.post("/set-claims/:uid", verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
+
 // Set admin claim (for initial admin setup)
 router.post("/set-admin/:uid", async (req, res) => {
   try {
     const { uid } = req.params;
-    const { adminSecret } = req.body;
 
-    // Use environment variable for security
-    if (adminSecret !== process.env.ADMIN_SECRET) {
+    const provided = (req.body.adminSecret || "").trim();
+    const expected = (process.env.ADMIN_SECRET || "").trim();
+
+    if (!provided || !expected || provided !== expected) {
       return res.status(403).json({ error: "Invalid admin secret" });
     }
 
     await auth.setCustomUserClaims(uid, { admin: true });
     await User.update(uid, { role: "admin" });
 
-    res.json({ success: true, message: "Admin claim set successfully" });
+    return res.json({
+      success: true,
+      message: "Admin claim set successfully",
+    });
   } catch (error) {
     console.error("Set admin error:", error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 });
+
 
 module.exports = router;
